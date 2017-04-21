@@ -1,0 +1,251 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/gabegorelick/gulp-angular-gettext#readme">gulp-angular-gettext (v2.2.0)</a>
+</h1>
+<h4>Gulp plugin for extracting/compiling angular-gettext strings</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.gulp-angular-gettext">module gulp-angular-gettext</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.gulp-angular-gettext.compile">
+            function <span class="apidocSignatureSpan">gulp-angular-gettext.</span>compile
+            <span class="apidocSignatureSpan">(options)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.gulp-angular-gettext.extract">
+            function <span class="apidocSignatureSpan">gulp-angular-gettext.</span>extract
+            <span class="apidocSignatureSpan">(out, config)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.gulp-angular-gettext" id="apidoc.module.gulp-angular-gettext">module gulp-angular-gettext</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.gulp-angular-gettext.compile" id="apidoc.element.gulp-angular-gettext.compile">
+        function <span class="apidocSignatureSpan">gulp-angular-gettext.</span>compile
+        <span class="apidocSignatureSpan">(options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">compile = function (options) {
+  options = options || {};
+
+  return through.obj(function (file, enc, cb) {
+    if (file.isNull()) {
+      this.push(file);
+      return cb();
+    }
+
+    if (file.isStream()) {
+      this.emit('error', new gutil.PluginError(pluginName, 'Streaming not supported'));
+      return cb();
+    }
+
+    var compiler = new Compiler(options);
+    var contents = compiler.convertPo([file.contents.toString()]);
+    file.contents = new Buffer(contents);
+
+    var dirname = path.dirname(file.path);
+    var basename = path.basename(file.path, '.po');
+    var extension = options.format === 'json' ? '.json' : '.js';
+    file.path = path.join(dirname, basename + extension);
+
+    this.push(file);
+    cb();
+  });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+            // options to pass to angular-gettext-tools...
+        }))
+        .pipe(gulp.dest('po/'));
+});
+
+gulp.task('translations', function () {
+	return gulp.src('po/**/*.po')
+		.pipe(gettext.<span class="apidocCodeKeywordSpan">compile</span>({
+		    // options to pass to angular-gettext-tools...
+		    format: 'json'
+        }))
+		.pipe(gulp.dest('dist/translations/'));
+});
+```
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.gulp-angular-gettext.extract" id="apidoc.element.gulp-angular-gettext.extract">
+        function <span class="apidocSignatureSpan">gulp-angular-gettext.</span>extract
+        <span class="apidocSignatureSpan">(out, config)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">extract = function (out, config) {
+  if (arguments.length === 1) {
+    if (!isString(out)) {
+      // out is optional
+      config = arguments[0];
+      out = null;
+    }
+  }
+
+  var emitStreamingError = function () {
+    this.emit('error', new gutil.PluginError(pluginName, 'Streaming not supported'));
+  }.bind(this);
+
+  var extractor = new Extractor(config);
+
+  if (!out) {
+    // return a standard gulp stream
+    return through.obj(function (file, enc, cb) {
+      if (file.isNull()) {
+        this.push(file);
+        return cb();
+      }
+
+      if (file.isStream()) {
+        emitStreamingError();
+        return cb();
+      }
+
+      extractor.parse(file.relative, file.contents.toString());
+      file.contents = new Buffer(extractor.toString());
+
+      var extension = path.extname(file.path);
+      var extIndex = file.path.lastIndexOf(extension);
+      file.path = file.path.substring(0, extIndex) + '.pot';
+
+      this.push(file);
+      cb();
+    });
+  }
+
+  // concatenate output, inspired by gulp-concat
+
+  var firstFile = null;
+
+  var bufferContents = function (file, encoding, cb) {
+    if (file.isNull()) {
+      cb(); // ignore
+      return;
+    }
+
+    if (file.isStream()) {
+      emitStreamingError();
+      cb();
+      return;
+    }
+
+    if (!firstFile) {
+      firstFile = file;
+    }
+
+    extractor.parse(file.relative, file.contents.toString());
+
+    cb();
+  };
+
+  var flush = function (cb) {
+    this.push(new gutil.File({
+      // if you don't want to use the first file for the base directory, you can use gulp-rename to change it
+      cwd: firstFile.cwd,
+      base: firstFile.base,
+      path: path.join(firstFile.base, out),
+      contents: new Buffer(extractor.toString())
+    }));
+
+    cb();
+  };
+
+  return through.obj(bufferContents, flush);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+```js
+var gulp = require('gulp');
+var gettext = require('gulp-angular-gettext');
+
+gulp.task('pot', function () {
+    return gulp.src(['src/partials/**/*.html', 'src/scripts/**/*.js'])
+        .pipe(gettext.<span class="apidocCodeKeywordSpan">extract</span>('template.pot', {
+            // options to pass to angular-gettext-tools...
+        }))
+        .pipe(gulp.dest('po/'));
+});
+
+gulp.task('translations', function () {
+	return gulp.src('po/**/*.po')
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
